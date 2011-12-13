@@ -1,0 +1,100 @@
+(ns net.sourceforge.argparse4clj-test
+  (:import [net.sourceforge.argparse4j.inf ArgumentParser])
+  (:use clojure.test net.sourceforge.argparse4clj))
+
+(deftest argument-action
+  (def parser (new-argument-parser
+               {:prog "prog"}
+               (add-argument ["-f" "--foo"] {:dest :dest, :default "def"})
+               (add-argument "-a" {:const :a, :action :store-const})
+               (add-argument "-b" {:const :b, :action :append-const})
+               (add-argument "-c" {:action :append})
+               (add-argument "-d" {:action :store-true})
+               (add-argument "-e" {:action :store-false})
+               ))
+  (def args (parse-args ["-a" "-b" "-b" "-d" "-e"] parser))
+  (is (= "def" (args :dest)))
+  (is (= :a (args :a)))
+  (is (= [:b :b] (args :b)))
+  (is (= true (args :d)))
+  (is (= false (args :e)))
+  )
+
+(deftest argument-choices
+  (def parser (new-argument-parser
+               {:prog "prog"}
+               (add-argument "-a" {:choices ["foo" "bar"]})
+               (add-argument "-b" {:choices (range 0 10), :type Long})))
+  (def args (parse-args ["-a" "foo" "-b" "9"] parser))
+  (is (= "foo" (args :a)))
+  (is (= 9 (args :b)))
+  )
+
+(deftest argument-nargs
+  (def parser (new-argument-parser
+               {:prog "prog"}
+               (add-argument "-a" {:nargs 2})
+               (add-argument "-b" {:nargs "*"})
+               (add-argument "-c" {:nargs "+"})
+               (add-argument "-d" {:nargs "?"})))
+  (def args (parse-args ["-a" "foo" "bar" "-b" "baz"] parser))
+  (is (= ["foo" "bar"] (args :a)))
+  (is (= ["baz"] (args :b)))
+  )
+
+(deftest argument-metavar
+  (def parser (new-argument-parser
+               {:prog "prog"}
+               (add-argument "-a" {:metavar "M"})
+               (add-argument "-b" {:nargs 2, :metavar ["N" "M"]})))
+  (is (.contains (. parser formatHelp) "[-a M] [-b N M]"))
+  )
+
+(deftest parser-defaults
+  (def parser (new-argument-parser
+               {:prog "prog", :defaults {:foo "all", :bar "baz"}}))
+  (is (= "all" (. parser getDefault "foo")))
+  )
+
+(deftest default-suppress
+  (def parser (new-argument-parser
+               {:prog "prog"}
+               (add-argument "-a" {:default :argparse-suppress})))
+  (def args (parse-args [] parser))
+  (is (not (contains? args :a)))
+  )
+
+(deftest subparser
+  (def parser
+    (new-argument-parser
+     {:prog "prog"}
+     (add-subparsers
+      {:description "description for sub-commands",
+       :help "help for sub-commands",
+       :metavar "COMMANDS",
+       :dest "command",
+       :title "title for sub-commands"}
+      (add-parser
+       "install"
+       {:default-help true,
+        :description "description for install",
+        :epilog "epilog for install",
+        :help "help for install",
+        :version "version"}
+       (add-argument "-f")))))
+  (def args (parse-args ["install" "-f" "foo"] parser))
+  (is (= "install" (args :command)))
+  (is (= "foo" (args :f)))
+  )
+
+(deftest group
+  (def parser
+    (new-argument-parser
+     {:prog "prog"}
+     (add-argument-group {:title "title for group",
+                          :description "desc for group"}
+                         (add-argument "-f"))))
+  (def help (. parser formatHelp))
+  (is (.contains help "title for group"))
+  (is (.contains help "desc for group"))
+  )

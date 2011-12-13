@@ -1,0 +1,129 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>net.sourceforge.argparse4clj</groupId>
+  <artifactId>argparse4clj</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <packaging>clojure</packaging>
+
+  <name>argparse4clj</name>
+  <url>http://argparse4j.sourceforge.net</url>
+  <description>The command line argument parser Argparse4j wrapper for Clojure</description>
+  <inceptionYear>2011</inceptionYear>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <parent>
+    <groupId>org.sonatype.oss</groupId>
+    <artifactId>oss-parent</artifactId>
+    <version>7</version>
+  </parent>
+
+  <licenses>
+    <license>
+      <name>MIT</name>
+      <url>https://raw.github.com/tatsuhiro-t/argparse4clj/master/LICENSE.txt</url>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>tatsuhiro_t</id>
+      <name>Tatsuhiro Tsujikawa</name>
+      <timezone>+9</timezone>
+    </developer>
+  </developers>
+
+  <issueManagement>
+    <system>sourceforge.net</system>
+    <url>http://sourceforge.net/p/argparse4j/tickets/</url>
+  </issueManagement>
+
+  <scm>
+    <connection>scm:git:git://github.com/tatsuhiro-t/argparse4clj.git</connection>
+    <developerConnection>scm:git:git@github.com:tatsuhiro-t/argparse4clj.git</developerConnection>
+    <url>https://github.com/tatsuhiro-t/argparse4clj</url>
+  </scm>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>clojure</artifactId>
+      <version>1.3.0</version>
+    </dependency>
+    <dependency>
+      <groupId>net.sourceforge.argparse4j</groupId>
+      <artifactId>argparse4j</artifactId>
+      <version>0.2.0</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <testResources>
+      <testResource>
+	<directory>src/test/resources</directory>
+      </testResource>
+    </testResources>
+    <plugins>
+      <plugin>
+	<groupId>com.theoryinpractise</groupId>
+	<artifactId>clojure-maven-plugin</artifactId>
+	<version>1.3.8</version>
+	<extensions>true</extensions>
+	<configuration>
+	  <script>demo.clj</script>
+	  <args>-h</args>
+	</configuration>
+      </plugin>
+      <plugin>
+	<artifactId>maven-assembly-plugin</artifactId>
+	<version>2.2.1</version>
+	<configuration>
+	  <descriptorRefs>
+	    <descriptorRef>bin</descriptorRef>
+	    <descriptorRef>src</descriptorRef>
+	  </descriptorRefs>
+	</configuration>
+      </plugin>
+      <plugin>
+	<artifactId>maven-javadoc-plugin</artifactId>
+	<version>2.8</version>
+	<configuration>
+	  <locale>en</locale>
+	  <stylesheet>maven</stylesheet>
+	</configuration>
+	<executions>
+	  <execution>
+	    <id>attach-javadocs</id>
+	    <goals>
+	      <goal>jar</goal>
+	    </goals>
+	  </execution>
+	</executions>
+      </plugin>
+      <plugin>
+	<groupId>org.apache.maven.plugins</groupId>
+	<artifactId>maven-source-plugin</artifactId>
+	<version>2.1.2</version>
+	<executions>
+	  <execution>
+	    <id>attach-sources</id>
+	    <goals>
+	      <goal>jar</goal>
+	    </goals>
+	  </execution>
+	</executions>
+      </plugin>
+      <plugin>
+	<groupId>org.apache.maven.plugins</groupId>
+	<artifactId>maven-release-plugin</artifactId>
+	<version>2.2.1</version>
+	<configuration>
+	</configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+</project>
