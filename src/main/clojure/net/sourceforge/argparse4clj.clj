@@ -81,7 +81,7 @@
    (instance? ArgumentChoice choices) choices
    true choices))
 
-(defn arg-range [min-value max-value]
+(defn between [min-value max-value]
   (. Arguments range min-value max-value))
 
 (declare setup-parser)
