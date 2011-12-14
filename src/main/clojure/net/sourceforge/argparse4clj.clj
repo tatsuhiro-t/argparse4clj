@@ -13,7 +13,7 @@
   (if (vector? val-or-vec) val-or-vec
       [val-or-vec]))
 
-(defn- nil-to [val default]
+(defn- non-nil [val default]
   (if (nil? val) default val))
 
 (defn- handle-type [type]
@@ -116,7 +116,7 @@
         params (fnext subparser-spec)
         parser-specs (fnext (next subparser-spec))
         subparser (. subparsers addParser command
-                     (nil-to (params :add-help) true)
+                     (non-nil (params :add-help) true)
                      (if (nil? (params :prefix-chars))
                        (. parser getPrefixChars) (params :prefix-chars)))]
     (doseq [[key value] params]
@@ -162,8 +162,8 @@
 (defn- build-parser [params specs]
   (let [parser (. ArgumentParsers newArgumentParser
               (params :prog)
-              (nil-to (params :add-help) true)
-              (nil-to (params :prefix-chars) "-"))]
+              (non-nil (params :add-help) true)
+              (non-nil (params :prefix-chars) "-"))]
     (setup-parser parser params specs)
     parser))
 
