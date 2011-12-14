@@ -10,24 +10,14 @@
   (:require [clojure.walk])
   (:gen-class))
 
+(declare setup-parser)
+
 (defn- va [val-or-vec]
   (if (vector? val-or-vec) val-or-vec
       [val-or-vec]))
 
 (defn- non-nil [val default]
   (if (nil? val) default val))
-
-(defn- handle-type [type]
-  (cond
-   (instance? Class type) type
-   (fn? type) (proxy [ArgumentType] []
-                (convert [parser arg value]
-                  (type value)))
-   (map? type) (proxy [ArgumentType]
-                   []
-                 (convert [parser arg value]
-                   ((type :convert) parser arg value)))
-   true type))
 
 (def append-action
   (proxy [ArgumentAction] []
@@ -81,10 +71,17 @@
    (instance? ArgumentChoice choices) choices
    true choices))
 
-(defn between [min-value max-value]
-  (. Arguments range min-value max-value))
-
-(declare setup-parser)
+(defn- handle-type [type]
+  (cond
+   (instance? Class type) type
+   (fn? type) (proxy [ArgumentType] []
+                (convert [parser arg value]
+                  (type value)))
+   (map? type) (proxy [ArgumentType]
+                   []
+                 (convert [parser arg value]
+                   ((type :convert) parser arg value)))
+   true type))
 
 (defn- build-argument [parser arg-spec]
   (let [name-or-flags (into-array String (first arg-spec))
@@ -209,3 +206,6 @@
 
 (defn add-subparsers [params & subparser-specs]
   [:add-subparsers params subparser-specs])
+
+(defn between [min-value max-value]
+  (. Arguments range min-value max-value))
