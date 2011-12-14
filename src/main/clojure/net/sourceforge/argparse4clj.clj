@@ -4,6 +4,7 @@
            (net.sourceforge.argparse4j.impl Arguments)
            (net.sourceforge.argparse4j.inf ArgumentParserException)
            (net.sourceforge.argparse4j.inf ArgumentType)
+           (net.sourceforge.argparse4j.inf ArgumentChoice)
            (net.sourceforge.argparse4j.inf ArgumentAction)
            (net.sourceforge.argparse4j.inf FeatureControl))
   (:require [clojure.walk])
@@ -72,6 +73,14 @@
       (. res put (name dest) value))
     res))
 
+(defn- handle-choices [choices]
+  (cond
+   (coll? choices) (proxy [ArgumentChoice] []
+                     (contains [val] (.contains choices val))
+                     (textualFormat [] (str (into [] choices))))
+   (instance? ArgumentChoice choices) choices
+   true choices))
+
 (defn arg-range [min-value max-value]
   (. Arguments range min-value max-value))
 
@@ -84,7 +93,7 @@
     (doseq [[key value] params]
       (condp = key
         :action (. arg action (handle-action value))
-        :choices (. arg choices value)
+        :choices (. arg choices (handle-choices value))
         :dest (. arg dest (name value))
         :const (. arg setConst value)
         :default (. arg setDefault

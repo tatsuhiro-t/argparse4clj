@@ -24,7 +24,7 @@
   (def parser (new-argument-parser
                {:prog "prog"}
                (add-argument "-a" {:choices ["foo" "bar"]})
-               (add-argument "-b" {:choices (range 0 10), :type Long})))
+               (add-argument "-b" {:choices (range 0 10), :type Integer})))
   (def args (parse-args ["-a" "foo" "-b" "9"] parser))
   (is (= "foo" (args :a)))
   (is (= 9 (args :b)))
