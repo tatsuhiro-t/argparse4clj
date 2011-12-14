@@ -19,6 +19,9 @@
 (defn- handle-type [type]
   (cond
    (instance? Class type) type
+   (fn? type) (proxy [ArgumentType] []
+                (convert [parser arg value]
+                  (type value)))
    (map? type) (proxy [ArgumentType]
                    []
                  (convert [parser arg value]

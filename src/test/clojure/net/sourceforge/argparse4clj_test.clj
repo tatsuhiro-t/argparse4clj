@@ -50,6 +50,14 @@
   (is (.contains (. parser formatHelp) "[-a M] [-b N M]"))
   )
 
+(deftest argument-type
+  (def parser (new-argument-parser
+               {:prog "prog"}
+               (add-argument "-a" {:type #(Integer. %)})))
+  (def args (parse-args ["-a" "1000007"] parser))
+  (is (= 1000007 (args :a)))
+  )
+
 (deftest argument-action-append
   (def parser (new-argument-parser
                {:prog "prog"}
