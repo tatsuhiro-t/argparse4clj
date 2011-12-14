@@ -50,6 +50,17 @@
   (is (.contains (. parser formatHelp) "[-a M] [-b N M]"))
   )
 
+(deftest argument-action-append
+  (def parser (new-argument-parser
+               {:prog "prog"}
+               (add-argument "-a" {:default [], :action :append})
+               (add-argument "-b" {:default [], :action :append-const,
+                                   :const :cons})))
+  (def args (parse-args ["-a" "1" "-a" "2" "-b" "-b"] parser))
+  (is (= ["1" "2"] (args :a)))
+  (is (= [:cons :cons] (args :b)))
+  )
+
 (deftest parser-defaults
   (def parser (new-argument-parser
                {:prog "prog", :defaults {:foo "all", :bar "baz"}}))

@@ -4,6 +4,7 @@
            (net.sourceforge.argparse4j.impl Arguments)
            (net.sourceforge.argparse4j.inf ArgumentParserException)
            (net.sourceforge.argparse4j.inf ArgumentType)
+           (net.sourceforge.argparse4j.inf ArgumentAction)
            (net.sourceforge.argparse4j.inf FeatureControl))
   (:require [clojure.walk])
   (:gen-class))
@@ -24,13 +25,36 @@
                    ((type :convert) parser arg value)))
    true type))
 
+(def append-action
+  (proxy [ArgumentAction] []
+    (consumeArgument [] true)
+    (onAttach [arg])
+    (run [parser arg attrs flag value]
+      (let [dest (.getDest arg)
+            obj (.get attrs dest)]
+        (if (vector? obj)
+          (.put attrs dest (conj obj value))
+          (.put attrs dest [value]))))))
+
+(def append-const-action
+  (proxy [ArgumentAction] []
+    (consumeArgument [] false)
+    (onAttach [arg])
+    (run [parser arg attrs flag value]
+      (let [dest (.getDest arg)
+            const (.getConst arg)
+            obj (.get attrs dest)]
+        (if (vector? obj)
+          (.put attrs dest (conj obj const))
+          (.put attrs dest [const]))))))
+
 (def actions
   {:store (. Arguments store)
    :store-const (. Arguments storeConst)
    :store-true (. Arguments storeTrue)
    :store-false (. Arguments storeFalse)
-   :append (. Arguments append)
-   :append-const (. Arguments appendConst)
+   :append append-action
+   :append-const append-const-action
    :version (. Arguments version)
    :help (. Arguments help)})
 
