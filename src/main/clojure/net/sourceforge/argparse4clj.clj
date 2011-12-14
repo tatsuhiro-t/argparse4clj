@@ -144,24 +144,23 @@
   (build-parser params specs))
 
 (defn parse-args
-  ([args params & specs] (parse-args args (build-parser params specs)))
-  ([args parser]
-     (let [result (new HashMap)]
-       (try
-         (. parser parseArgs (into-array String args) result)
-         (clojure.walk/keywordize-keys (into {} result))
-         (catch ArgumentParserException e
-           (. parser handleError e)
-           (. System exit 1))
-         (catch RuntimeException e
-           ;; If ArgumentParserException is thrown in delegated method,
-           ;; it is wrapped with RuntimeException.
-           (let [cause (. e getCause)]
-             (if (instance? ArgumentParserException cause)
-               (do
-                 (. parser handleError cause)
-                 (. System exit 1))
-               (throw e))))))))
+  [args parser]
+  (let [result (new HashMap)]
+    (try
+      (. parser parseArgs (into-array String args) result)
+      (clojure.walk/keywordize-keys (into {} result))
+      (catch ArgumentParserException e
+        (. parser handleError e)
+        (. System exit 1))
+      (catch RuntimeException e
+        ;; If ArgumentParserException is thrown in delegated method,
+        ;; it is wrapped with RuntimeException.
+        (let [cause (. e getCause)]
+          (if (instance? ArgumentParserException cause)
+            (do
+              (. parser handleError cause)
+              (. System exit 1))
+            (throw e)))))))
             
 (defn add-argument
   ([name-or-flags & [params]]
