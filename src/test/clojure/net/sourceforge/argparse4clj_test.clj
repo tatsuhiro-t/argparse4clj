@@ -24,10 +24,12 @@
   (def parser (new-argument-parser
                {:prog "prog"}
                (add-argument "-a" {:choices ["foo" "bar"]})
-               (add-argument "-b" {:choices (range 0 10), :type Integer})))
-  (def args (parse-args ["-a" "foo" "-b" "9"] parser))
+               (add-argument "-b" {:choices (range 0 10), :type Integer})
+               (add-argument "-c" {:choices [1 2 3], :type Integer})))
+  (def args (parse-args ["-a" "foo" "-b" "9" "-c" "2"] parser))
   (is (= "foo" (args :a)))
   (is (= 9 (args :b)))
+  (is (= 2 (args :c)))
   )
 
 (deftest argument-nargs
