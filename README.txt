@@ -3,6 +3,38 @@ Argparse4clj - The command line argument parser library for Clojure
 The argparse4clj is a command line argument parser library for
 Clojure. Argparse4clj is actually a wrapper library for argparse4j.
 
+Sample code:
+-------------------------------------------------------------------------------
+(ns demo (:use [net.sourceforge.argparse4clj]))
+
+(def args
+ (parse-args
+  *command-line-args*
+  (new-argument-parser
+   {:prog "prog", :description "Process some integers."}
+   (add-argument "integers" {:metavar "N", :type Integer, :nargs "+"
+                             :help "an integer for the accumulator"})
+   (add-argument "--sum" {:dest "accumulate", :action :store-const,
+                          :const +, :default max
+                          :help "sum the integers (default: find the max)"}))))
+(println (apply (args :accumulate) (args :integers)))
+-------------------------------------------------------------------------------
+
+With -h option, the above script prints:
+
+-------------------------------------------------------------------------------
+usage: prog [-h] [--sum] N [N ...]
+
+Process some integers.
+
+positional arguments:
+  N                      an integer for the accumulator
+
+optional arguments:
+  -h, --help             show this help message and exit
+  --sum                  sum the integers (default: find the max)
+-------------------------------------------------------------------------------
+
 Project has just started and no documentation at the moment.
   
 Here is summary of features:
