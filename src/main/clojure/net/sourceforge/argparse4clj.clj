@@ -162,18 +162,14 @@
               (. System exit 1))
             (throw e)))))))
             
-(defn add-argument
-  ([name-or-flags & [params]]
-     [:add-argument (va name-or-flags) params]))
+(defn add-argument [name-or-flags & [params]]
+  [:add-argument (va name-or-flags) params])
 
-(defn add-argument-group
-  [params & arg-specs]
+(defn add-argument-group [params & arg-specs]
   [:add-argument-group params arg-specs])
 
-(defn add-parser
-  ([command & [params & parser-specs]]
-     [:add-parser command params parser-specs]))
+(defn add-parser [command & [params & parser-specs]]
+  [:add-parser command params parser-specs])
 
-(defn add-subparsers
-  [params & subparser-specs]
+(defn add-subparsers [params & subparser-specs]
   [:add-subparsers params subparser-specs])
