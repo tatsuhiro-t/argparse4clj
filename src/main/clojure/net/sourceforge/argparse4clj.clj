@@ -167,9 +167,10 @@
 
 (defn- build-parser [params specs]
   (let [parser (. ArgumentParsers newArgumentParser
-              (params :prog)
-              (non-nil (params :add-help) true)
-              (non-nil (params :prefix-chars) "-"))]
+                  (params :prog)
+                  (non-nil (params :add-help) true)
+                  (non-nil (params :prefix-chars) "-")
+                  (params :from-file-prefix-chars))]
     (setup-parser parser params specs)
     parser))
 
