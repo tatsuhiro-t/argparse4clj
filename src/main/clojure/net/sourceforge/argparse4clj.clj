@@ -94,7 +94,7 @@
         :dest (. arg dest (name value))
         :const (. arg setConst value)
         :default (. arg setDefault
-                    (if (= value :argparse-suppress)
+                    (if (= value :argparse.suppress)
                       (. FeatureControl SUPPRESS)
                       value))
         :help (. arg help value)

@@ -82,7 +82,7 @@
 (deftest default-suppress
   (def parser (new-argument-parser
                {:prog "prog"}
-               (add-argument "-a" {:default :argparse-suppress})))
+               (add-argument "-a" {:default :argparse.suppress})))
   (def args (parse-args [] parser))
   (is (not (contains? args :a)))
   )
