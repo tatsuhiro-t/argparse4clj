@@ -14,7 +14,7 @@ Sample code:
    {:prog "prog", :description "Process some integers."}
    (add-argument "integers" {:metavar "N", :type Integer, :nargs "+"
                              :help "an integer for the accumulator"})
-   (add-argument "--sum" {:dest "accumulate", :action :store-const,
+   (add-argument "--sum" {:dest :accumulate, :action :store-const,
                           :const +, :default max
                           :help "sum the integers (default: find the max)"}))))
 (println (apply (args :accumulate) (args :integers)))
