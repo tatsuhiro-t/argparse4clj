@@ -67,7 +67,7 @@
   (cond
    (coll? choices) (proxy [ArgumentChoice] []
                      (contains [val] (.contains choices val))
-                     (textualFormat [] (str (into [] choices))))
+                     (textualFormat [] (str (vec choices))))
    (instance? ArgumentChoice choices) choices
    true choices))
 
