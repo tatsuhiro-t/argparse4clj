@@ -213,5 +213,10 @@
 (defn add-subparsers [params & subparser-specs]
   [:add-subparsers params subparser-specs])
 
-(defn xrange [min-value max-value]
+(defn xrange
+  "Used as value of :type in add-argument function to specify
+  acceptable range of option value. This does not cripple help
+  message if range is large. The range is from min-value to
+  max-value, including min-value but excluding max-value."
+  [min-value max-value]
   (. Arguments range min-value (- max-value 1)))
