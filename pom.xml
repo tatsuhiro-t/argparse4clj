@@ -60,6 +60,27 @@
     </dependency>
   </dependencies>
 
+  <reporting>
+    <plugins>
+      <plugin>
+	<artifactId>maven-project-info-reports-plugin</artifactId>
+	<version>2.4</version>
+	<reportSets>
+	  <reportSet>
+	    <reports>
+	      <report>summary</report>
+	      <report>dependencies</report>
+	      <report>project-team</report>
+	      <report>issue-tracking</report>
+	      <report>license</report>
+	      <report>scm</report>
+	    </reports>
+	  </reportSet>
+	</reportSets>
+      </plugin>
+    </plugins>
+  </reporting>
+
   <build>
     <testResources>
       <testResource>
@@ -67,6 +88,11 @@
       </testResource>
     </testResources>
     <plugins>
+      <plugin>
+	<groupId>org.apache.maven.plugins</groupId>
+	<artifactId>maven-site-plugin</artifactId>
+	<version>3.0</version>
+      </plugin>
       <plugin>
 	<groupId>com.theoryinpractise</groupId>
 	<artifactId>clojure-maven-plugin</artifactId>

@@ -1,0 +1,1781 @@
+The argparse4clj User Manual
+
+  Argparse4j is a command line argument parser library for Clojure.
+  It is a wrapper of argparse4j, which is based
+  on Python's
+  {{{http://docs.python.org/library/argparse.html}argparse}}.
+
+  This manual was written based on Python's argparse manual and most of the
+  the sentences are almost identical, just replaced code examples. We
+  use this approach because argparse manual is well written and since
+  both are do the same thing, using existing manual makes us create a
+  manual with good quality in a short time. Thanks to Python community
+  for the great module and documentation.
+
+%{toc}
+
+* Examples
+
+  The following code is a Clojure script that takes a list of integers
+  and produces either the sum or the max:
+
++---
+(ns demo (:use [net.sourceforge.argparse4clj]))
+
+(def args
+ (parse-args
+  *command-line-args*
+  (new-argument-parser
+   {:prog "prog", :description "Process some integers."}
+   (add-argument "integers" {:metavar "N", :type Integer, :nargs "+"
+                             :help "an integer for the accumulator"})
+   (add-argument "--sum" {:dest :accumulate, :action :store-const,
+                          :const +, :default max
+                          :help "sum the integers (default: find the max)"}))))
+(println (apply (args :accumulate) (args :integers)))
++---
+
+  It can be run at the command line and provides useful help messages:
+
++---
+$ java clojure.main demo.clj -h
+usage: prog [-h] [--sum] N [N ...]
+
+Process some integers.
+
+positional arguments:
+  N                      an integer for the accumulator
+
+optional arguments:
+  -h, --help             show this help message and exit
+  --sum                  sum the integers (default: find the max)
++---
+
+  When run with the appropriate arguments, it prints either the sum or
+  the max of the command-line integers:
+
++---
+$ java clojure.main demo.clj 1 2 3 4
+4
+$ java clojure.main demo.clj 1 2 3 4 --sum
+10
++---
+
+  If invalid arguments are passed in, it will print error message and exit:
+
++---
+$ java clojure.main demo.clj a b c
+usage: prog [-h] [--sum] N [N ...]
+prog: error: argument integers: could not convert 'a' to Integer (For input string: "a")
++---
+
+  The following sections walk you through this example.
+
+* Creating a parser
+
+  The first step in using the argparse4clj is creating
+  <<<ArgumentParser>>> object using <<<new-argument-parser>>> function:
+
++---
+(new-argument-parser
+   {:prog "prog", :description "Process some integers."}
+   (add-argument "integers" {:metavar "N", :type Integer, :nargs "+"
+                             :help "an integer for the accumulator"})
+   (add-argument "--sum" {:dest :accumulate, :action :store-const,
+                          :const +, :default max
+                          :help "sum the integers (default: find the max)"}))
++---
+
+  <<<new-argument-parser>>> function creates and returns
+  <<<ArgumentParser>>> Java object with given arguments.  The first
+  argument for <<<new-argument-parser>>> is a map containing
+  parameters for <<<ArgumentParser>>> object. The second and later
+  arguments are specifications of arguments. These are explained later
+  in this manual. The <<<ArgumentParser>>> object will hold all the
+  information necessary to parse the command line into Clojure/Java
+  data types.
+
+** Adding arguments
+
+  Filling an ArgumentParser with information about program arguments
+  is done by adding calls to the <<<add-argument>>> function to
+  <<<new-argument-parser>>> function.  Generally, this calls tell the
+  <<<ArgumentParser>>> how to take the strings on the command line and
+  turn them into objects. This information is stored and used when
+  <<<parse-args>>> function is called. For example:
+
++---
+(add-argument "integers" {:metavar "N", :type Integer, :nargs "+"
+                          :help "an integer for the accumulator"})
+(add-argument "--sum" {:dest :accumulate, :action :store-const,
+                       :const +, :default max
+                       :help "sum the integers (default: find the max)"}))
++---
+
+  Later, calling <<<parse-args>>> will return an Clojure <<<map>>>
+  object with two map keys, <<<:integers>>> and <<<:accumulate>>>. The
+  <<<:integers>>> value will be a Java <<<List>>> which has one
+  or more ints, and the <<<:accumulate>>> value will be either the
+  <<<+>>> function, if <<<--sum>>> was specified at the command line,
+  or the <<<max>>> function object if it was not.
+
+** Passing arguments
+
+  ArgumentParser parses arguments through the <<<parse-args>>>
+  function. This will inspect the command line, convert each argument
+  to the appropriate type and then invoke the appropriate action. In
+  most cases, this means a simple Clojure <<<map>>> will have
+  key/value pairs parsed out of the command line. The following code:
+
++---
+user=> (use 'net.sourceforge.argparse4clj)
+nil
+user=> (def parser
+  (new-argument-parser
+   {:prog "prog", :description "Process some integers."}
+   (add-argument "integers" {:metavar "N", :type Integer, :nargs "+"
+                             :help "an integer for the accumulator"})
+   (add-argument "--sum" {:dest :accumulate, :action :store-const,
+                          :const +, :default max
+                          :help "sum the integers (default: find the max)"})))
+#'user/parser
+user=> (println (parse-args ["--sum", "7", "-1", "42"] parser))
+{:integers #<ArrayList [7, -1, 42]>, :accumulate #<core$_PLUS_ clojure.core$_PLUS_@686963d0>}
+nil
+user=> 
++---
+
+  In Clojure, the command line arguments are given as
+  <<<*command-line-args*>>>.  To parse the command line, pass this
+  object to <<<parse-args>>> function as 1st argument.
+
+* new-argument-parser
+
++---
+net.sourceforge.argparse4clj/new-argument-parser
+([params & specs])
++---
+
+  <<<specs>>> is a specification of how to parse the command line arguments.
+  The following functions can be used here to build specification:
+
+   * {{{add-argument}add-argument}} - Add argument and specify how to
+     treat command line argument.
+
+   * {{{add-argument-group}add-argument-group}} - Make a conceptual
+     grouping of arguments.
+
+   * {{{add-subparsers}add-subparsers}} - Add parsers for sub-commands.
+
+  Each function is explained in the later chapter of this manual.
+
+  <<<params>>> is Clojure map and following parameters can be specified:
+
+   * {{{:prog}:prog}} - The name of the program. This is necessary
+     because main() method in Java does not provide program name.
+
+   * {{{:add-help}:add-help}} - Add a <<<-h/--help>>> option to the
+     parser.  (default: <<<true>>>).
+
+   * {{{:prefix-chars}:prefix-chars}} - The set of characters that prefix
+     optional arguments. (default: <<<"-">>>)
+
+   * {{{:from-file-prefix-chars}:from-file-prefix-chars}} - The set of
+     characters that prefix file path from which additional arguments
+     are read.
+
+   * {{{:description}:description}} - Text to display before the
+     argument help.
+
+   * {{{:epilog}:epilog}} - Text to display after the argument help.
+
+   * {{{:default-help}:default-help}} - Display default value to help
+     message. (default: <<<false>>>)
+
+   * {{{:version}:version}} - Text to display when
+     <<<ArgumentParser.printVersion>()>>> is called.
+
+   * {{:defaults}} - Parser level default values.
+
+  The following sections describes how each of these parameters are
+  used.
+
+** :prog
+
+  In Clojure, the name of the program is not included in
+  *command-line-args*.  Because of this, the name of the program can
+  be specified with this key.
+
+** :add-help
+
+  By default, ArgumentParser objects add an option which simply
+  displays the parser's help message. For example, consider following
+  code:
+
++---
+(parse-args
+  (new-argument-parser
+   {:prog "prog"}
+   (add-argument "--foo" {:help "foo help"})))
++---
+
+  If <<<-h>>> or <<<--help>>> is supplied at the command line, the
+  ArgumentParser will display help message:
+
++---
+$ java clojure.main demo.clj --help
+usage: prog [-h] [--foo FOO]
+
+optional arguments:
+  -h, --help             show this help message and exit
+  --foo FOO              foo help
++---
+
+  Occasionally, it may be useful to disable the addition of this help
+  option.  This can be achieved by passing <<<:add-help false>>>:
+
++---
+(def parser (new-argument-parser
+             {:prog "prog", :add-help false}
+             (add-argument "--foo" {:help "foo help"})))
+(.printHelp parser)
++---
+
+
++---
+$ java clojure.main demo.clj 
+usage: prog [--foo FOO]
+
+optional arguments:
+  --foo FOO              foo help
++---
+
+  The help option is typically <<<-h/--help>>>. The exception to this
+  is if the {{{:prefix-chars}:prefix-chars}} is specified and does not
+  include <<<->>>, in which case <<<-h>>> and <<<--help>>> are not
+  valid options. In this case, the first character in
+  {{{:prefix-chars}:prefix-chars}} is used to prefix the help options:
+
++---
+(def parser (new-argument-parser
+             {:prog "prog", :prefix-chars "+"}
+             (add-argument "--foo" {:help "foo help"})))
+(.printHelp parser)
++---
+
+
++---
+$ java clojure.main demo.clj 
+usage: prog [+h] --foo
+
+positional arguments:
+  --foo                  foo help
+
+optional arguments:
+  +h, ++help             show this help message and exit
++---
+
+** :prefix-chars
+
+  Most command line options will use <<<->>> as the prefix, e.g.
+  <<<-f/--foo>>>. Parsers that need to support different or additional
+  prefix characters, e.g. for options like <<<+f>>> or <<</foo>>>, may
+  specify them using <<<:prefix-chars>>>:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog", :prefix-chars "-+"}
+    (add-argument "+f")
+    (add-argument "++bar"))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj +f X ++bar Y
+{:f X, :bar Y}
++---
+
+  The <<<:prefix-chars>>> argument defaults to <<<"-">>> . Supplying a
+  set of characters that does not include <<<->>> will cause
+  <<<-f/--foo>>> options to be disallowed.
+
+** :from-file-prefix-chars
+
+  It is sometimes useful to read arguments from file other than typing
+  them in command line, for example, when lots of arguments are
+  needed.  If <<<:from-file-prefix-chars>>> is given with string,
+  arguments starts with one of these characters are treated as file
+  path and <<<ArgumentParser>>> reads additional arguments from the
+  file.  For example:
+
++---
+$ cat args.txt
+-f
+bar
++---
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog", :from-file-prefix-chars "@"}
+    (add-argument "-f"))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj -f foo @args.txt
+{:f bar}
++---
+
+  By default, <<<:from-file-prefix-chars>>> is <<<nil>>>, which means no
+  argument is treated as file path.
+
+** :description
+
+  It gives a brief description of what the program does and how it
+  works. In help message, the description is displayed between command
+  line usage string and the help messages for the various arguments:
+
++---
+(def parser (new-argument-parser
+             {:prog "prog", :description "A foo that bars"}))
+(.printHelp parser)
++---
+
++---
+$ java clojure.main demo.clj
+usage: prog [-h]
+
+A foo that bars
+
+optional arguments:
+  -h, --help             show this help message and exit
++---
+
+  By default, the description will be line-wrapped so that it fits
+  within the given space.
+
+** :epilog
+
+  Some programs like to display additional description of the program
+  after the description of the arguments. Such text can be specified
+  using <<<:epilog>>>:
+
++---
+(def parser (new-argument-parser
+             {:prog "prog", :description "A foo that bars",
+              :epilog "And that's how you'd foo a bar"}))
+(.printHelp parser)
++---
+
+
++---
+$ java clojure.main demo.clj
+usage: prog [-h]
+
+A foo that bars
+
+optional arguments:
+  -h, --help             show this help message and exit
+
+And that's how you'd foo a bar
++---
+
+  As with the {{{:description}:description}}, text specified in
+  <<<:epilog>>> is by default line-wrapped.
+
+** :default-help
+
+  The default value of each argument is not by default displayed in
+  help message. Specifying <<<:default-help true>>> will display the
+  default value of each argument in help message:
+
++---
+(def parser (new-argument-parser
+             {:prog "prog", :default-help true}
+             (add-argument "--foo" {:type Integer, :default 42, :help "FOO!"})
+             (add-argument "bar" {:nargs "*", :default [1 2 3], :help "BAR!"})))
+(.printHelp parser)
++---
+
++---
+$ java clojure.main demo.clj
+usage: prog [-h] [--foo FOO] [bar [bar ...]]
+
+positional arguments:
+  bar                    BAR! (default: [1 2 3])
+
+optional arguments:
+  -h, --help             show this help message and exit
+  --foo FOO              FOO! (default: 42)
++---
+
+** :version
+
+  <<<:version>>> specifies the text to display when
+  <<<ArgumentParser.printVersion()>>> is called.
+
+** :defaults
+
+  Most of the time, the attributes of the object returned by
+  <<<parse-args>>> will be fully determined by inspecting the command
+  line arguments and the argument actions.  <<<:defaults>>>, taking
+  map as a value, allows some additional attributes that are
+  determined without any inspection of the command line to be added:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog", :defaults {:bar 42, :baz "badger"}}
+    (add-argument "foo" {:type Integer}))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj 736
+{:baz badger, :foo 736, :bar 42}
++---
+
+  Note that parser-level defaults always override argument-level
+  defaults:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog", :defaults {:foo "spam"}}
+    (add-argument "--foo" {:default "bar"}))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj
+{:foo spam}
++---
+
+  Parser-level defaults can be particularly useful when working with
+  multiple parsers. See {{Sub-commands}} for an example of this type.
+
+* add-argument
+
++---
+net.sourceforge.argparse4clj/add-argument
+([name-or-flags] [name-or-flags params])
++---
+
+  <<<:add-argument>>> function defines how a single command line
+  argument should be parsed.  {{{name-or-flags}name-or-flags}} is
+  either a name or a vector of option strings, e.g. <<<"foo">>> or
+  <<<["-f" "--foo"]>>>.  <<<params>>> is Clojure map and following
+  parameters can be specified:
+
+   * {{{:action}:action}} - The basic type of action to be taken when
+     this argument is encountered at the command line.
+
+   * {{{:nargs}:nargs}} - The number of command line arguments that
+     should be consumed.
+
+   * {{{:const}:const}} - A constant value required by some
+     {{{:action}:action}} and {{{:nargs}:nargs}} selections.
+
+   * {{{:type}:type}} - The type to which the command line argument
+     should be converted.
+
+   * {{{:choices}:choices}} - A collection of the allowable values for
+     the argument.
+
+   * {{{:required}:required}} - Whether or not the command line option
+     may be omitted(optional arguments only).
+
+   * {{{:help}:help}} - A brief description of what the argument does.
+
+   * {{{:metavar}:metavar}}- A name for the argument in usage
+     messages.
+
+   * {{{:dest}:dest()}} - The keyword of the attribute to be added as
+     a result of <<<parse-args>>>.
+
+  The following sections describe how each of these are used.
+
+** name-or-flags
+
+  For each argument specification, the <<<ArgumentParser>>> must know
+  whether an optional argument, like <<<-f>>> or <<<--foo>>>, or a
+  positional argument, like a list of filenames, is expected.
+  <<<name-or-flags>>> must
+  therefore be either a series of flags, or a simple argument name.
+  For example, an optional argument could be created like:
+
++---
+(add-argument ["-f" "--foo"])
++---
+
+  while a positional argument could be created like:
+
++---
+(add-argument "bar")
++---
+
+  When <<<parse-args>>> is called, optional arguments will be
+  identified by the <<<->>> prefix(or one of <<<:prefix-chars>>> if it
+  is specified in <<<new-argument-parser>>>), and the
+  remaining arguments will be assumed to be positional:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument ["-f" "--foo"])
+    (add-argument "bar"))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj BAR
+{:foo nil, :bar BAR}
++---
+
+** :action
+
+  <<<ArgumentParser>>> associates command line arguments with
+  actions. These actions can do just about anything with command line
+  arguments associated with them, though most of the actions simply
+  add an attribute to the map returned by
+  <<<parse-args>>>. <<<:action>>> specifies how the command line
+  arguments should be handled. The supported actions follow.
+
+*** :store
+
+  <<<:store>>> just stores the argument's value. This is
+  the default action. For example:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument ["-f" "--foo"]))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj --foo 1
+{:foo 1}
++---
+
+*** :store-Const
+
+  <<<:store-const>>> stores the value specified by the
+  {{{:const}:const}}. (Note that by default const value is the rather
+  unhelpful <<<nil>>>.)  <<<:store-const>>> action is most commonly
+  used with optional arguments that specify sort of flags. For
+  example:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument "--foo" {:action :store-const, :const 42}))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj --foo
+{:foo 42}
++---
+
+*** :store-true
+
+*** :store-false
+
+  <<<:store-true>>> and <<<:store-false>>> are special cases of
+  {{{:store-const}:store-const}} using for storing values <<<true>>>
+  and <<<false>>> respectively. In addition, they create default
+  values of <<<false>>> and <<<true>>> respectively. For example:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument "--foo" {:action :store-true})
+    (add-argument "--bar" {:action :store-false})
+    (add-argument "--baz" {:action :store-false}))))
+(println res)
++---
+
+
++---
+$ java clojure.main demo.clj --foo --bar
+{:baz true, :foo true, :bar false}
++---
+
+*** :append
+
+  <<<:append>>> stores a Clojure vector, and appends each argument
+  value to the vector. This is useful to allow an option to be
+  specified multiple times. For example:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument "--foo" {:action :append}))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj --foo 1 --foo 2
+{:foo [1 2]}
++---
+
+*** :append-const
+
+  <<<:append-const>>> stores a Clojure vector, and appends the value
+  specified by {{{:const}:const}} to the vector. (Note that the const
+  value defaults to <<<nil>>>.) <<<:append-const>>> action is
+  typically useful when multiple arguments need to store constants to
+  the same vector. For example:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument "--str" {:action :append-const, :dest :types, :const String})
+    (add-argument "--int" {:action :append-const, :dest :types, :const Integer})
+    )))
+(println res)
++---
+
+
++---
+$ java clojure.main demo.clj --str --int
+{:types [java.lang.String java.lang.Integer]}
++---
+
+*** :version
+
+  <<<:version>>> prints version string specified by <<<:version>>> in
+  <<<new-argument-parser>>> function and exists when invoked.
+
++---
+  (parse-args
+   (new-argument-parser
+    {:prog "prog", :version "demo 1.0"}
+    (add-argument "--version" {:action :version})))
++---
+
++---
+$ java clojure.main demo.clj --version
+demo 1.0
++---
+
+*** :help
+
+  <<<:help>>> prints help message and exits when invoked.
+
++---
+  (parse-args
+   (new-argument-parser
+    {:prog "prog", :add-help false}
+    (add-argument "--help" {:action :help})))
++---
+
+
++---
+$ java clojure.main demo.clj --help
+usage: prog [--help]
+
+optional arguments:
+  --help                 
++---
+
+*** Custom actions
+
+  You can also specify your costum action by implementing
+  <<<ArgumentAction>>> interface. For example:
+
++---
+(ns demo
+  (:use [net.sourceforge.argparse4clj])
+  (:import [net.sourceforge.argparse4j.inf ArgumentAction]))
+
+(def foo-action
+  (proxy [ArgumentAction] []
+    (run [parser arg attrs flag value]
+      (printf "%s '%s' %s\n" attrs value flag)
+      (.put attrs (.getDest arg) value))
+    (onAttach [arg])
+    (consumeArgument [] true)))
+
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument "--foo" {:action foo-action})
+    (add-argument "bar" {:action foo-action}))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj 1 --foo 2
+{foo=null, bar=null} '1' null
+{foo=null, bar=1} '2' --foo
+{:foo 2, :bar 1}
++---
+
+** :nargs
+
+  <<<ArgumentParser>>> objects usually associate a single command line
+  argument with a single action to be taken. The
+  <<<:nargs>>> associate different number of command line
+  arguments with a single action.
+
+*** N, where N is a positive integer
+
+  <<<N>>> arguments from the command line will be gathered into a
+  Java <<<List>>>. For example:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument "--foo" {:nargs 2})
+    (add-argument "bar" {:nargs 1}))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj c --foo a b
+{:foo #<ArrayList [a, b]>, :bar #<ArrayList [c]>}
++---
+
+  Note that <<<:nargs 1>>> produces a list of one item. This is
+  different from the default, in which the item is produced by itself.
+
+*** "?"
+
+  One argument will be consumed from the command line if possible, and
+  produced as a single item. If no command line argument is present,
+  the value from {{{:default}:default}} will be produced. Note that
+  for optional arguments, there is an additional case - the option
+  string is present but not followed by a command line argument. In
+  this case the value from {{{:const}:const}} will be produced. Some
+  examples to illustrate this:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument "--foo" {:nargs "?", :const "c", :default "d"})
+    (add-argument "bar" {:nargs "?", :default "d"}))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj XX --foo YY
+{:foo YY, :bar XX}
+$ java clojure.main demo.clj XX --foo
+{:foo c, :bar XX}
+$ java clojure.main demo.clj
+{:foo d, :bar d}
++---
+
+*** "*"
+
+  All command line arguments present are gathered into a Java
+  <<<List>>>. Note that it generally does not make sense to have more
+  than one positional argument with <<<:nargs "*">>>, but multiple
+  optional arguments with <<<:nargs "*">>> is possible. For example:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument "--foo" {:nargs "*"})
+    (add-argument "--bar" {:nargs "*"})
+    (add-argument "baz" {:nargs "*"}))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj 
+{:baz #<ArrayList []>, :foo nil, :bar nil}
+$ java clojure.main demo.clj a b --foo x y --bar 1 2
+{:baz #<ArrayList [a, b]>, :foo #<ArrayList [x, y]>, :bar #<ArrayList [1, 2]>}
++---
+
+*** "+"
+
+  Just like <<<"*">>>, all command line arguments present are gathered
+  into a Java <<<List>>>. Additionally, an error message will be
+  generated if there wasn't at least one command line argument
+  present. For example:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument "foo" {:nargs "+"}))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj a b
+{:foo #<ArrayList [a, b]>}
+$ java clojure.main demo.clj
+usage: prog [-h] foo [foo ...]
+prog: error: too few arguments
++---
+
+  If <<<:nargs>>> is not provided, the number of arguments consumed is
+  determined by the {{:action}}.  Generally this means a single
+  command line argument will be consumed and a single item (not a Java
+  <<<List>>>) will be produced.  Please note that <<<:nargs>>> is
+  ignored if one of {{:store-const}}, {{:append-const}},
+  {{:store-true}} and {{:store-false}} is provided. More specifically,
+  subclass of <<<ArgumentAction>>> whose <<<consumeArgument()>>>
+  returns <<<false>>> ignores <<<:nargs>>>.
+
+** :const
+
+  <<<:const>>> is used to hold constant values that
+  are not read from the command line but are required for the various
+  actions.  The two most common uses of it are:
+
+   * When {{:store-const}} and {{:append-const}} are specified.  These
+     actions add the value spcified by <<<:const>>> to one of the
+     attributes of the map returned by <<<parse-args>>>.  See the
+     {{:action}} for examples.
+
+   * When <<<:nargs "?">>> is used for an optional argument
+     (e.g. <<<-f>>> or <<<--foo>>>). This means an optional argument
+     that can be followed by zero or one command line argument. When
+     parsing the command line, if the option string is encountered
+     with no command line argument following it, the value specified
+     by <<<:const>>> will be assumed instead.  See the
+     {{:nargs}} description for examples.  The const value defauls to
+     <<<nil>>>.
+
+** :default
+
+  All optional arguments and some positional arguments may be omitted
+  at the command line.  <<<:default>>> specifies what value should be
+  used if the command line argument is not present. The default value
+  defaults to <<<nil>>>. For optional arguments, the default value is
+  used when the option string was not present at the command line:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument "--foo" {:default 42}))))
+(println res)
++---
+
+
++---
+$ java clojure.main demo.clj --foo 2
+{:foo 2}
+$ java clojure.main demo.clj
+{:foo 42}
++---
+
+  For positional arguments with <<<:nargs "?">>> or <<<:nargs "*">>>,
+  the default value is used when no command line argument was present:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument "foo" {:nargs "?", :default 42}))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj a
+{:foo a}
+$ java clojure.main demo.clj
+{:foo 42}
++---
+
+  Providing <<<:argparse.suppress>>> causes no attribute to be added
+  if the command ine argument was not present:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument "--foo" {:default :argparse.suppress}))))
+(println res)
++---
+
+
++---
+$ java clojure.main demo.clj
+{}
+$ java clojure.main demo.clj --foo 1
+{:foo 1}
++---
+
+** :type
+
+  By default, <<<ArgumentParser>>> objects read command line arguments
+  in as simple strings. However, quite often the command line string
+  should instead be interpreted as another type, like a <<<Double>>>
+  or <<<Integer>>>. <<<:type>>> allows any necessary type-checking and
+  type conversions to be performed. Classes which have a construct
+  with 1 String argument and function taking 1 argument can be used
+  directly as the value of <<<:type>>>:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument "foo" {:type Integer})
+    (add-argument "bar" {:type #(Double. %)}))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj 2 3.14
+{:foo 2, :bar 3.14}
++---
+
+  {{:choices}} may be more convenient for type checkers that simply
+  check against a range of values:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument "foo" {:type Integer, :choices (range 5 10)}))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj 7
+{:foo 7}
+$ java clojure.main demo.clj 11
+usage: prog [-h] [5 6 7 8 9]
+prog: error: argument foo: invalid choice: '11' (choose from [5 6 7 8 9])
++---
+
+  See {{:choices}} for more details.
+
+** :choices
+
+  Some command line arguments should be selected from a restricted set
+  of values. These can be handled by passing a list of objects to
+  <<<:choices>>>. When the command line is parsed, argument
+  values will be checked, and an error message will be displayed if
+  the argument was not one of the accepted values:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument "foo" {:choices ["a", "b", "c"]}))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj c
+{:foo c}
+$ java clojure.main demo.clj X
+usage: prog [-h] ["a" "b" "c"]
+prog: error: argument foo: invalid choice: 'X' (choose from ["a" "b" "c"])
++---
+
+  Note that inclusion in the choices list is checked after any type
+  conversions have been performed.  Any collection objects (coll?
+  evaluates true) can be specified as a value of <<<:choices>>>.
+  
+  You can use <<<range>>> function to specify range of integers easily:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument "foo" {:choices (range 0 5)}))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj -h
+usage: prog [-h] [0 1 2 3 4]
+
+positional arguments:
+  [0 1 2 3 4]            
+
+optional arguments:
+  -h, --help             show this help message and exit
++---
+
+  As you can see, range is evaluated and all integers contained in
+  there are displayed in the help message. This is good if it contains
+  small number of integers, but if it has large number of integers,
+  help message gets quite ugly. In this case, use <<<xrange>>>
+  function to specify a range. It just works like range but it does
+  not unfold all integers when displayed in the help message:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument "foo" {:choices (xrange 0 5)}))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj -h
+usage: prog [-h] {0..4}
+
+positional arguments:
+  {0..4}                 
+
+optional arguments:
+  -h, --help             show this help message and exit
++---
+
+** :required
+
+  In general, the <<<ArgumentParser>>> assumes that flags like
+  <<<-f>>> and <<<--bar>>> indicate optional arguments, which can
+  always be omitted at the command line. To make an option required,
+  <<<true>>> can be specified for <<<:required>>>:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument "--foo" {:required true}))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj --foo BAR
+{:foo BAR}
+$ java clojure.main demo.clj
+usage: prog [-h] --foo FOO
+prog: error: argument --foo is required
++---
+
+  As the example shows, if an option is marked as required,
+  <<<parse-args>>> will report an error if that option is not present
+  at the command line.  <<<:required>>> will be ignored for positional
+  arguments.
+
+  Note: Required options are generally considered bad form because
+  users expect options to be optional, and thus they should be avoided
+  when possible.
+
+** :help
+
+  <<<:help>>> can take string containing a brief description of the
+  argument. When a user requests help (usually by using <<<-h>>> or
+  <<<--help>>> at the command line), these help descriptions will be
+  displayed with each argument:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument "--foo" {:action :store-true,
+                           :help "foo the bars before frobbling"})
+    (add-argument "bar" {:nargs "+",
+                         :help "one of the bars to be frobbled"}))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj -h
+usage: prog [-h] [--foo] bar [bar ...]
+
+positional arguments:
+  bar                    one of the bars to be frobbled
+
+optional arguments:
+  -h, --help             show this help message and exit
+  --foo                  foo the bars before frobbling
++---
+
+  The help strings are used as is: no special string replacement will
+  not be done.
+
+** :metavar
+
+  When <<<ArgumentParser>>> generates help messages, it need some way
+  to refer to each expected argument. By default, <<<ArgumentParser>>>
+  objects use the {{:dest}} value as the "name" of each object.  By
+  default, for positional arguments, the dest value is used directly,
+  and for optional arguments, the dest value is uppercased. So, a
+  single positional argument with <<<:dest "bar">>> will be referred
+  to as <<<bar>>>. A single optional argument <<<--foo>>> that should
+  be followed by a single command line argument will be referred to as
+  <<<FOO>>>. For example:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument "--foo")
+    (add-argument "bar"))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj -h
+usage: prog [-h] [--foo FOO] bar
+
+positional arguments:
+  bar                    
+
+optional arguments:
+  -h, --help             show this help message and exit
+  --foo FOO              
++---
+
+  An alternative name can be specified with <<<:metavar>>>:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument "--foo" {:metavar "YY"})
+    (add-argument "bar" {:metavar "XX"}))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj -h
+usage: prog [-h] [--foo YY] XX
+
+positional arguments:
+  XX                     
+
+optional arguments:
+  -h, --help             show this help message and exit
+  --foo YY               
++---
+
+  Note that <<<:metavar>>> only changes the displayed name - the name
+  of the attribute in the object returned by <<<parse-args>>> is still
+  determined by the {{:dest}} value.  Different values of {{:nargs}}
+  may cause the metavar to be used multiple times. Providing multiple
+  values to <<<:metavar>>> specifies a different display for
+  each of the arguments:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument "-x" {:nargs 2})
+    (add-argument "--foo" {:nargs 2, :metavar ["bar", "baz"]}))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj -h
+usage: prog [-h] [-x X X] [--foo bar baz]
+
+optional arguments:
+  -h, --help             show this help message and exit
+  -x X X                 
+  --foo bar baz          
++---
+
+  If the number of values specified in <<<:metavar>>> is not
+  sufficient for the number of arguments given in {{:nargs}}, the last
+  value of <<<:metavar>>> is repeated.
+
+** :dest
+
+  Most <<<ArgumentParser>>> actions add some values as key/value pair
+  of the map returned by <<<parse-args>>>. The key is Clojure keyword.
+  The name of this key is determined by <<<:dest>>>. For positional
+  arguments, <<<:dest>>> is normally supplied as the first argument to
+  {{add-argument}} function:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument "bar"))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj XX
+{:bar XX}
++---
+
+  For optional arguments, the value of <<<:dest>>> is normally
+  inferred from the option strings. <<<ArgumentParser>>> generates the
+  value of <<<:dest>>> by taking the first long option string and
+  stripping away the initial <<<-->>> string. If no long option
+  strings were supplied, <<<:dest>>> will be derived from the first
+  short option string by stripping the initial <<<->>> character. Any
+  internal <<<->>> characters will be converted to <<<_>>>. The
+  example below illustrate this behavior:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument ["-f" "--foo-bar" "--foo"])
+    (add-argument ["-x" "-y"]))))
+(println res)
++---
+
+
++---
+$ java clojure.main demo.clj -f 1 -x 2
+{:x 2, :foo_bar 1}
+$ java clojure.main demo.clj --foo 1 -y 2
+{:x 2, :foo_bar 1}
++---
+
+  <<<:dest>>> allows a custom keyword name to be provided:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument "--foo" {:dest :bar}))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj --foo XX
+{:bar XX}
++---
+
+* parse-args
+
++---
+net.sourceforge.argparse4clj/parse-args
+([parser] [args parser])
++---
+
+  <<<parse-args>>> function converts argument strings to objects and
+  populates map object with these values. The populated map object is
+  returned. <<<parser>>> is <<<ArgumentParser>>> object created by
+  {{new-argument-parser}} function, which knows how to parse command
+  line arguments. <<<args>>> is a list of argument strings. If args is
+  omitted (first form is used), <<<*command-line-args*>>> is used as
+  <<<args>>>.
+
+** Option value syntax
+
+  <<<parse-args>>> function supports several ways of specifying
+  the value of an option (if it takes one). In the simplest case, the
+  option and its value are passed as two separate arguments:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument "-x")
+    (add-argument "--foo"))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj -x X
+{:foo nil, :x X}
+$ java clojure.main demo.clj --foo FOO
+{:foo FOO, :x nil}
++---
+
+  For long options (options with names longer than single character),
+  the option and value can also be passed as a single command line
+  argument, using <<<=>>> to separate them:
+
++---
+$ java clojure.main demo.clj --foo=FOO
+{:foo FOO, :x nil}
++---
+
+  For short options (options only one character long), the option and
+  its value can be concatenated:
+
++---
+$ java clojure.main demo.clj -xX
+{:foo nil, :x X}
++---
+
+  Several short options can be joined together, using only a single
+  <<<->>> prefix, as long as only the last option (or none of them)
+  requires a value:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument "-x" {:action :store-true})
+    (add-argument "-y" {:action :store-true})
+    (add-argument "-z"))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj -xyzZ
+{:z Z, :y true, :x true}
++---
+
+** Invalid arguments
+
+  While parsing the command line, <<<parse-args>>> function checks for
+  a variety of errors, including invalid types, invalid options, wrong
+  number of positional arguments, etc. When it encounters such an
+  error, it prints error message and exit the program:
+
++---
+
+ public static void main(String[] args) {
+     ArgumentParser parser = ArgumentParsers.newArgumentParser("prog");
+     parser.addArgument("--foo").type(Integer.class);
+     parser.addArgument("bar").nargs("?");
+     try {
+         System.out.println(parser.parseArgs(args));
+     } catch (ArgumentParserException e) {
+         parser.handleError(e);
+         System.exit(1);
+     }
+ }
+ 
++---
+
+
++---
+$ java clojure.main demo.clj --foo spam
+usage: prog [-h] [--foo FOO] [bar]
+prog: error: argument --foo: could not convert 'spam' to Integer (For input string: "spam")
+
+$ java clojure.main demo.clj --bar
+usage: prog [-h] [--foo FOO] [bar]
+prog: error: unrecognized arguments: --bar
+
+Did you mean:
+	--foo
+
+$ java clojure.main demo.clj spam badger
+usage: prog [-h] [--foo FOO] [bar]
+prog: error: unrecognized arguments: badger
++---
+
+** Arguments containing "-"
+
+  <<<parse-args>>> function attempts to give errors whenever the user
+  has cearly made a mistake, but some situations are inherently
+  ambiguous. For example, the command line argument <<<-1>>> could
+  either be an attempt to specify an option or an attempt to provide a
+  positional argument. <<<parse-args>>> is cautious here: positional
+  arguments may only begin with <<<->>> if they look like negative
+  numbers and there are no options in the parser that look like
+  negative numbers:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument "-x")
+    (add-argument "foo" {:nargs "?"}))))
+(println res)
++---
+
++---
+$ # no negative number options, so -1 is a positional argument
+$ java clojure.main demo.clj -x -1
+{:foo nil, :x -1}
+
+$ # no negative number options, so -1 and -5 are positional arguments
+$ java clojure.main demo.clj -x -1 -5
+{:foo -5, :x -1}
++---
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument "-1" {:dest :one})
+    (add-argument "foo" {:nargs "?"}))))
+(println res)
++---
+
++---
+$ # negative number options present, so -1 is an option
+$ java clojure.main demo.clj -1 X
+{:one X, :foo nil}
+
+$ # negative number options present, so -2 is an option
+$ java clojure.main demo.clj -2
+usage: prog [-h] [-1 ONE] [foo]
+prog: error: unrecognized arguments: -2
+
+$ # negative number options present, so both -1s are options
+$ java clojure.main demo.clj -1 -1
+usage: prog [-h] [-1 ONE] [foo]
+prog: error: argument -1: expected one argument
++---
+
+  If you have positional arguments that must begin with <<<->>> and
+  don't look like negative numbers, you can insert the pseudo-argument
+  <<<-->>> which tells <<<parse-args>>> that everything after that is
+  a positional argument:
+
++---
+$ java clojure.main demo.clj -- -f
+{:one nil, :foo -f}
++---
+
+  Please note that whatever {{:prefix-chars}} is specified in
+  {{new-argument-parser}}, pseudo-argument is <<<-->>>.
+
+  After <<<-->>>, sub-command cannot be recognized.
+
+* Other utilities
+
+** Sub-commands
+
+  Many programs split up their functionality into a number of
+  sub-commands, for example, the git program can invoke sub-commands
+  like <<<git stash>>>, <<<git checkout>>> and <<<git
+  commit>>>. Splitting up functionality this way can be a particularly
+  good idea when a program performs several different functions which
+  requires different kinds of command-line
+  arguments. <<<ArgumentParser>>> supports the creation of such
+  sub-commands with the <<<add-subparsers>>> function.
+
+*** add-subparsers
+
++---
+net.sourceforge.argparse4clj/add-subparsers
+([params & subparser-specs])
++---
+
+  To add sub-command, specify {{add-parser}} function call to
+  <<<subparser-specs>>>.
+
+  <<<params>>> is Clojure map and following parameters can be specified:
+
+  * :description - Text displayed in help message.
+
+  * :dest - The map key added to the map returned by {{parse-args}} to
+    store selected sub-command name.
+
+  * :help - Text displayed in help message for sub-commands.
+
+  * :metavar - Text to use instead of all sub-command names in help
+    message.
+
+  * :title - The group title for sub-command in help message.
+
+*** add-parser
+
++---
+net.sourceforge.argparse4clj/add-parser
+([command] [command params & parser-specs])
++---
+
+  <<<command>>> is the sub-command name string.  In
+  <<<parser-specs>>>, you can use following functions:
+  {{add-argument}}, {{add-argument-group}}, {{add-subparsers}} just
+  like <<<new-argument-parser>>>.
+
+  For <<<params>>>, following parameters can be recognized:
+  {{:add-help}}, {{:prefix-chars}}, {{:default-help}},
+  {{:description}}, {{:epilog}}, {{:defaults}}, {{:version}} just like
+  <<<new-argument-parser>>>.  <<<add-parser>>> also accepts
+  <<<:help>>> parameter, which specifies the text to be displaed in
+  help message. If {{:prefix-chars}} is not specified, it is inherited
+  from main parser.
+
+  Some example usage:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument "--foo" {:action :store-true, :help "foo help"})
+    (add-subparsers
+     {:help "sub-command help"}
+     (add-parser
+      "a" {:help "a help"}
+      (add-argument "bar" {:type Integer, :help "bar help"}))
+     (add-parser
+      "b" {:help "b help"}
+      (add-argument "--baz" {:choices ["X", "Y", "Z"], :help "baz help"}))))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj a 12
+{:foo false, :bar 12}
+
+$ java clojure.main demo.clj --foo b --baz Z
+{:baz Z, :foo true}
++---
+
+  Note that the map returned by <<<parse-args>>>
+  will only contain attributes for the main parser and the subparser
+  that was selected by the command line (and not any other
+  subparsers). So in the example above, when the <<<a>>> command is
+  specified, only the <<<:foo>>> and <<<:bar>>> key/value pairs are present,
+  and when the <<<b>>> command is specified, only <<<:foo>>> and
+  <<<:baz>>> are present.  Similarly, when a help message is
+  requested from a subparser, only the help for that particular parser
+  will be printed. The help message will not include parent parser or
+  sibling parser messages.
+
++---
+$ java clojure.main demo.clj -h
+usage: prog [-h] [--foo] {a,b} ...
+
+positional arguments:
+  {a,b}                  sub-command help
+    a                    a help
+    b                    b help
+
+optional arguments:
+  -h, --help             show this help message and exit
+  --foo                  foo help
+
+$ java clojure.main demo.clj a --help
+usage: prog a [-h] bar
+
+positional arguments:
+  bar                    bar help
+
+optional arguments:
+  -h, --help             show this help message and exit
+
+$ java clojure.main demo.clj b --help
+usage: prog b [-h] [--baz ["X" "Y" "Z"]]
+
+optional arguments:
+  -h, --help             show this help message and exit
+  --baz ["X" "Y" "Z"]    baz help
++---
+
+  When either <<<:title>>> or <<<:description>>> are specified in
+  <<<add-subparsers>>>, the subparser's commands will appear in their
+  own group in the help output. For example:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument "--foo" {:action :store-true, :help "foo help"})
+    (add-subparsers
+     {:title "subcommand", :description "valid commands",
+      :help "additional help"}
+     (add-parser "foo")
+     (add-parser "bar")))))
+(println res) 
++---
+
++---
+$ java clojure.main demo.clj -h
+usage: prog [-h] [--foo] {foo,bar} ...
+
+optional arguments:
+  -h, --help             show this help message and exit
+  --foo                  foo help
+
+subcommand:
+  valid commands
+
+  {foo,bar}              additional help
++---
+
+  As you can see above, all sub-commands are printed in help message.
+  It would be good for only 2 or 3 sub-commands, but if there are many
+  sub-commands, the display will become quite ugly.  In that case,
+  <<<:metavar>>> sets text to use instead of all sub-command
+  names. For example:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument "--foo" {:action :store-true, :help "foo help"})
+    (add-subparsers
+     {:title "subcommand", :description "valid commands",
+      :help "additional help", :metavar "COMMANDS"}
+     (add-parser "foo" {:help "foo help"})
+     (add-parser "bar" {:help "bar help"})))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj -h
+usage: prog [-h] [--foo] COMMANDS ...
+
+optional arguments:
+  -h, --help             show this help message and exit
+  --foo                  foo help
+
+subcommand:
+  valid commands
+
+  COMMANDS               additional help
+    foo                  foo help
+    bar                  bar help
++---
+
+  One particularly effective way of handling sub-commands is to
+  combine the use of <<<:defaults>>> so that each
+  subparser knows which function it should execute. For example:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-subparsers
+     {}
+     (add-parser "sum"
+                 {:defaults {:func +}}
+                 (add-argument "ints" {:type Integer, :nargs "*"}))
+     (add-parser "max"
+                 {:defaults {:func max}}
+                 (add-argument "ints" {:type Integer, :nargs "+"}))))))
+(println (apply (res :func) (res :ints)))
++---
+
++---
+$ java clojure.main demo.clj sum 1 3 2
+6
+$ java clojure.main demo.clj max 1 3 2
+3
++---
+
+  The alternative way is use <<<:dest>>>. With this dest
+  value, the selected command name is stored as a key/value pair:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-subparsers
+     {:dest :subparser-name}
+     (add-parser "1" {}
+                 (add-argument "-x"))
+     (add-parser "2" {}
+                 (add-argument "y"))))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj 2 frobble
+{:subparser-name 2, :y frobble}
++---
+
+** add-argument-group
+
+  By default, <<<ArgumentParser>>> groups command line arguments into
+  "positional arguments" and "optional arguments" when displaying help
+  messages. When there is a better conceptual grouping of arguments
+  than this default one, appropriate groups can be created using the
+  <<<add-argument-group>>> function.
+
++---
+net.sourceforge.argparse4clj/add-argument-group
+([params & arg-specs])
++---
+
+  You can add argument to this group using <<<add-argument>>> function
+  in <<<arg-specs>>>.  When an argument is added to the group, the
+  parser treats it just like a normal argument, but displays the
+  argument in a separate group for help messages.
+
+  In <<<params>>> map, following parameters can be specified:
+
+  * :title - Text used as a title of this group in help message.
+
+  * :description - Text to display in help message.
+
+  For exmple:
+
++---
+(def res
+  (parse-args
+   (new-argument-parser
+    {:prog "prog"}
+    (add-argument-group {:title "group", :description "group description"}
+                        (add-argument "--foo" {:help "foo help"})
+                        (add-argument "bar" {:help "bar help"})))))
+(println res)
++---
+
++---
+$ java clojure.main demo.clj -h
+usage: prog [-h] [--foo FOO] bar
+
+optional arguments:
+  -h, --help             show this help message and exit
+
+group:
+  group description
+
+  --foo FOO              foo help
+  bar                    bar help
++---
+
+  Note that any arguments not in your user defined groups will end up
+  back in the usual "positional arguments" and "optional arguments"
+  sections.
+
+** Printing help
+
+  In most typical applications, <<<parse-args>>> will
+  take care of formatting and printing any usage or error messages.
+  However, several formatting methods are available:
+
+   * <<<ArgumentParser.printUsage()>>> - Print a brief description of
+     how the program should be invoked on the command line.
+
+   * <<<ArgumentParser.printHelp()>>> - Print a help message,
+     including the program usage and information about the arguments
+     registered with <<<ArgumentParser>>>.
+
+  These are Java object methods, so use Java interop like this: <<<(.printHelp
+  parser)>>>.
