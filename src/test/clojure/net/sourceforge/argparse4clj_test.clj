@@ -26,7 +26,7 @@
                (add-argument "-a" {:choices ["foo" "bar"]})
                (add-argument "-b" {:choices (range 0 10), :type Integer})
                (add-argument "-c" {:choices [1 2 3], :type Integer})
-               (add-argument "-d" {:choices (between 1 65535),
+               (add-argument "-d" {:choices (xrange 1 65536),
                                    :type Integer})))
   (def args (parse-args ["-a" "foo" "-b" "9" "-c" "2"] parser))
   (is (= "foo" (args :a)))

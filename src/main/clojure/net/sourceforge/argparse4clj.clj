@@ -138,7 +138,7 @@
     (doseq [[key value] params]
       (condp = key
         :description (. subparsers description value)
-        :dest (. subparsers dest value)
+        :dest (. subparsers dest (name value))
         :help (. subparsers help value)
         :metavar (. subparsers metavar value)
         :title (. subparsers title value)
@@ -197,17 +197,21 @@
                  (. System exit 1))
                (throw e))))))))
 
-(defn add-argument [name-or-flags & [params]]
-  [:add-argument (va name-or-flags) params])
+(defn add-argument
+  ([name-or-flags] (add-argument name-or-flags {}))
+  ([name-or-flags params]
+     [:add-argument (va name-or-flags) params]))
 
 (defn add-argument-group [params & arg-specs]
   [:add-argument-group params arg-specs])
 
-(defn add-parser [command & [params & parser-specs]]
-  [:add-parser command params parser-specs])
+(defn add-parser
+  ([command] (add-parser command {}))
+  ([command params & parser-specs]
+     [:add-parser command params parser-specs]))
 
 (defn add-subparsers [params & subparser-specs]
   [:add-subparsers params subparser-specs])
 
-(defn between [min-value max-value]
-  (. Arguments range min-value max-value))
+(defn xrange [min-value max-value]
+  (. Arguments range min-value (- max-value 1)))
