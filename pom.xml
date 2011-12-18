@@ -7,7 +7,7 @@
   <packaging>clojure</packaging>
 
   <name>argparse4clj</name>
-  <url>http://argparse4j.sourceforge.net</url>
+  <url>http://argparse4clj.sourceforge.net</url>
   <description>The command line argument parser Argparse4j wrapper for Clojure</description>
   <inceptionYear>2011</inceptionYear>
 
@@ -38,7 +38,7 @@
 
   <issueManagement>
     <system>sourceforge.net</system>
-    <url>http://sourceforge.net/p/argparse4j/tickets/</url>
+    <url>http://sourceforge.net/p/argparse4clj/tickets/</url>
   </issueManagement>
 
   <scm>

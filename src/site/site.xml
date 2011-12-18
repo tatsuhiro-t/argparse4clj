@@ -23,6 +23,7 @@
       <item name="Introduction" href="index.html" />
       <item name="Source Code" href="https://github.com/tatsuhiro-t/argparse4clj" />
       <item name="Usage" href="usage.html" />
+      <item name="Sourceforge.net" href="http://sourceforge.net/projects/argparse4clj/" />
     </menu>
     <menu ref="reports" />
   </body>
