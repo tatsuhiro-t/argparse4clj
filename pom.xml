@@ -3,7 +3,7 @@
 
   <groupId>net.sourceforge.argparse4clj</groupId>
   <artifactId>argparse4clj</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>0.1.0-SNAPSHOT</version>
   <packaging>clojure</packaging>
 
   <name>argparse4clj</name>
