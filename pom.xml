@@ -12,6 +12,8 @@
   <inceptionYear>2011</inceptionYear>
 
   <properties>
+    <clojure.source.dir>src/main/clojure</clojure.source.dir>
+    <clojure.testSource.dir>src/test/clojure</clojure.testSource.dir>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
@@ -89,6 +91,52 @@
     </testResources>
     <plugins>
       <plugin>
+	<!-- copied from pom.contrib-0.0.25.pom -->
+	<!-- Add Clojure sources to the project's source directories -->
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>1.5</version>
+        <executions>
+          <execution>
+            <id>add-clojure-source-dirs</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>add-source</goal>
+              <goal>add-resource</goal>
+            </goals>
+            <configuration>
+              <sources>
+		<source>${clojure.source.dir}</source>
+              </sources>
+              <resources>
+		<resource>
+		  <directory>${clojure.source.dir}</directory>
+		</resource>
+              </resources>
+            </configuration>
+          </execution>
+          <execution>
+            <id>add-clojure-test-source-dirs</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>add-test-source</goal>
+              <goal>add-test-resource</goal>
+            </goals>
+            <configuration>
+              <sources>
+		<source>${clojure.testSource.dir}</source>
+              </sources>
+              <resources>
+		<resource>
+		  <directory>${clojure.testSource.dir}</directory>
+		</resource>
+              </resources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
 	<groupId>org.apache.maven.plugins</groupId>
 	<artifactId>maven-site-plugin</artifactId>
 	<version>3.0</version>
@@ -130,17 +178,17 @@
 	</executions>
       </plugin>
       <plugin>
-	<groupId>org.apache.maven.plugins</groupId>
-	<artifactId>maven-source-plugin</artifactId>
-	<version>2.1.2</version>
-	<executions>
-	  <execution>
-	    <id>attach-sources</id>
-	    <goals>
-	      <goal>jar</goal>
-	    </goals>
-	  </execution>
-	</executions>
+      	<groupId>org.apache.maven.plugins</groupId>
+      	<artifactId>maven-source-plugin</artifactId>
+      	<version>2.1.2</version>
+      	<executions>
+      	  <execution>
+      	    <id>attach-sources</id>
+      	    <goals>
+      	      <goal>jar</goal>
+      	    </goals>
+      	  </execution>
+      	</executions>
       </plugin>
       <plugin>
 	<groupId>org.apache.maven.plugins</groupId>
